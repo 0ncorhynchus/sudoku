@@ -54,15 +54,27 @@ impl Board {
         Self { field }
     }
 
-    fn find_empty(&self) -> Option<(usize, usize)> {
+    fn find_empty(&self) -> Option<(usize, usize, Vec<Number>)> {
+        let mut max = 10;
+        let mut candidate = None;
         for (i, row) in self.field.iter().enumerate() {
             for (j, num) in row.iter().enumerate() {
-                if num.is_none() {
-                    return Some((i, j));
+                if num.is_some() {
+                    continue;
+                }
+                let mut numbers = Vec::new();
+                for number in &NUMBERS {
+                    if self.can_set(i, j, *number) {
+                        numbers.push(*number);
+                    }
+                }
+                if numbers.len() < max {
+                    max = numbers.len();
+                    candidate = Some((i, j, numbers));
                 }
             }
         }
-        None
+        candidate
     }
 
     fn can_set(&self, i: usize, j: usize, number: Number) -> bool {
@@ -123,18 +135,14 @@ fn solve(board: &mut Board) -> Vec<Board> {
 }
 
 fn solve_helper(board: &mut Board, solution: &mut Vec<Board>) {
-    let (i, j) = if let Some(point) = board.find_empty() {
-        point
+    let (i, j, numbers) = if let Some(candidate) = board.find_empty() {
+        candidate
     } else {
         solution.push(*board);
         return;
     };
 
-    for num in &NUMBERS {
-        if !board.can_set(i, j, *num) {
-            continue;
-        }
-
+    for num in &numbers {
         board.set(i, j, *num);
         solve_helper(board, solution);
         board.reset(i, j);
@@ -142,7 +150,7 @@ fn solve_helper(board: &mut Board, solution: &mut Vec<Board>) {
 }
 
 fn main() {
-    let mut field = [[None ;9]; 9];
+    let mut field = [[None; 9]; 9];
     let stdin = std::io::stdin();
     let handle = stdin.lock();
     for (i, line) in handle.lines().enumerate().take(9) {
@@ -158,7 +166,7 @@ fn main() {
                 "7" => field[i][j] = Some(Number::N7),
                 "8" => field[i][j] = Some(Number::N8),
                 "9" => field[i][j] = Some(Number::N9),
-                _ => {},
+                _ => {}
             }
         }
     }
